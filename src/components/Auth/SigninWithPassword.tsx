@@ -4,6 +4,10 @@ import Link from "next/link";
 import React, { useState } from "react";
 import InputGroup from "../FormElements/InputGroup";
 import { Checkbox } from "../FormElements/checkbox";
+import { signIn } from "@/services/auth";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import jwt from "jsonwebtoken";
 
 export default function SigninWithPassword() {
   const [data, setData] = useState({
@@ -11,6 +15,8 @@ export default function SigninWithPassword() {
     password: process.env.NEXT_PUBLIC_DEMO_USER_PASS || "",
     remember: false,
   });
+
+  const router = useRouter();
 
   const [loading, setLoading] = useState(false);
 
@@ -21,15 +27,62 @@ export default function SigninWithPassword() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    // You can remove this code block
     setLoading(true);
 
-    setTimeout(() => {
+    try {
+      const { accessToken, refreshToken, user } = await signIn({
+        ...data,
+        role: "USER",
+      });
+
+      if (accessToken && refreshToken) {
+        const decodedAccessToken = jwt.decode(accessToken) as {
+          exp?: number;
+          iat?: number;
+        };
+
+        let maxAgeAccessToken = 0;
+        if (decodedAccessToken?.exp && decodedAccessToken?.iat) {
+          maxAgeAccessToken =
+            (decodedAccessToken.exp - decodedAccessToken.iat) / (60 * 60 * 24); // in seconds
+        }
+
+        const decodedRefreshToken = jwt.decode(refreshToken) as {
+          exp?: number;
+          iat?: number;
+        };
+
+        let maxAgeRefreshToken = 0;
+        if (decodedRefreshToken?.exp && decodedRefreshToken?.iat) {
+          maxAgeRefreshToken =
+            (decodedRefreshToken.exp - decodedRefreshToken.iat) /
+            (60 * 60 * 24); // in seconds
+        }
+
+        Cookies.set("accessToken", accessToken, {
+          path: "/",
+          secure: true,
+          sameSite: "strict",
+          expires: maxAgeAccessToken,
+        });
+        Cookies.set("refreshToken", refreshToken, {
+          path: "/",
+          secure: true,
+          sameSite: "strict",
+          expires: maxAgeRefreshToken,
+        });
+      }
+
+      console.log("pushhhhhhh");
+
+      router.push("/");
+
       setLoading(false);
-    }, 1000);
+    } catch (e) {
+      setLoading(false);
+    }
   };
 
   return (

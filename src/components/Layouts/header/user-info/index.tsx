@@ -11,9 +11,19 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { LogOutIcon, SettingsIcon, UserIcon } from "./icons";
+import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
 
 export function UserInfo() {
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
+
+  const handleLogout = () => {
+    Cookies.remove("token");
+    setIsOpen(false);
+
+    router.push("/auth/sign-in")
+  };
 
   const USER = {
     name: "John Smith",
@@ -106,7 +116,7 @@ export function UserInfo() {
         <div className="p-2 text-base text-[#4B5563] dark:text-dark-6">
           <button
             className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[9px] hover:bg-gray-2 hover:text-dark dark:hover:bg-dark-3 dark:hover:text-white"
-            onClick={() => setIsOpen(false)}
+            onClick={handleLogout}
           >
             <LogOutIcon />
 
